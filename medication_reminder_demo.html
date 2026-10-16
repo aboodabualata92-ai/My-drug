@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دوائي في وقتها — واجهة تجريبية</title>
+<style>
+:root{--green:#0f766e;--green2:#14b8a6;--bg:#f4f7f8;--card:#fff;--red:#dc2626;--amber:#d97706;--gray:#64748b}
+*{box-sizing:border-box;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+body{margin:0;background:var(--bg);color:#0f172a}
+header{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;padding:18px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:20px}
+header p{margin:4px 0 0;font-size:13px;opacity:.9}
+.badge{background:rgba(255,255,255,.2);padding:6px 12px;border-radius:999px;font-size:12px}
+nav{display:flex;gap:8px;padding:12px 16px;background:#fff;border-bottom:1px solid #e2e8f0;overflow-x:auto}
+.tab{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:8px 14px;font-size:14px;cursor:pointer;white-space:nowrap}
+.tab.active{background:var(--green);border-color:var(--green);color:#fff}
+main{max-width:1100px;margin:auto;padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--card);border:1px solid #e2e8f0;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(15,23,42,.05)}
+.card h2{margin:0 0 12px;font-size:17px;color:var(--green)}
+label{display:block;font-size:13px;margin:10px 0 5px;color:#334155}
+input,select,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font-size:14px;background:#fff}
+button{border:0;border-radius:10px;padding:11px 16px;font-size:14px;cursor:pointer;font-weight:600}
+.primary{background:var(--green);color:#fff;width:100%;margin-top:14px}
+.ghost{background:#e2e8f0;color:#0f172a}
+.small{font-size:12px;color:var(--gray)}
+.med{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px;background:#f8fafc}
+.med b{display:block}
+.pill{font-size:11px;padding:3px 8px;border-radius:999px;background:#ccfbf1;color:#115e59}
+.dose{display:flex;justify-content:space-between;align-items:center;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px}
+.dose.taken{background:#ecfdf5;border-color:#a7f3d0}
+.dose.missed{background:#fef2f2;border-color:#fecaca}
+.time{font-weight:700;color:var(--green)}
+.actions{display:flex;gap:6px}
+.actions button{padding:7px 10px;font-size:12px}
+.ok{background:#16a34a;color:#fff}
+.late{background:var(--amber);color:#fff}
+.skip{background:#e2e8f0}
+.stat{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+.stat div{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:22px;color:var(--green)}
+.hidden{display:none}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 18px;border-radius:12px;opacity:0;transition:.3s;z-index:9}
+.toast.show{opacity:1}
+footer{text-align:center;color:var(--gray);font-size:12px;padding:20px}
+@media(max-width:600px){main{padding:12px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>💊 دوائي في وقتها</h1>
+    <p>خدمة تجريبية لإدارة وتذكير المريض بالأدوية — إصدار عرض</p>
+  </div>
+  <div class="badge">صيدلية النموذج — عمان</div>
+</header>
+
+<nav>
+  <button class="tab active" data-page="dashboard">لوحة المريض</button>
+  <button class="tab" data-page="add">إضافة دواء</button>
+  <button class="tab" data-page="pharmacy">واجهة الصيدلي</button>
+  <button class="tab" data-page="reports">التقارير</button>
+</nav>
+
+<main>
+<section id="dashboard" class="grid">
+  <div class="card">
+    <h2>جرعات اليوم</h2>
+    <div id="todayDoses"></div>
+    <p class="small">هذه واجهة تجريبية فقط ولا تُستخدم لاتخاذ قرارات علاجية.</p>
+  </div>
+  <div class="card">
+    <h2>أدويتي الحالية</h2>
+    <div id="medList"></div>
+  </div>
+  <div class="card">
+    <h2>ملخص الالتزام</h2>
+    <div class="stat">
+      <div><b id="takenCount">0</b>جرعة تم أخذها</div>
+      <div><b id="pendingCount">0</b>جرعة قادمة</div>
+      <div><b id="missedCount">0</b>جرعة فائتة</div>
+      <div><b id="adherenceRate">0%</b>نسبة الالتزام</div>
+    </div>
+    <h2 style="margin-top:18px">تنبيه إعادة الصرف</h2>
+    <div id="refillBox" class="small"></div>
+  </div>
+</section>
+
+<section id="add" class="hidden">
+  <div class="card" style="max-width:640px;margin:auto">
+    <h2>إضافة دواء جديد</h2>
+    <label>اسم المريض</label>
+    <input id="pName" placeholder="مثال: أحمد محمد">
+    <label>العمر</label>
+    <input id="pAge" type="number" min="0" placeholder="مثال: 45">
+    <label>الحالة المرضية</label>
+    <select id="pCondition">
+      <option>ضغط الدم</option><option>السكري</option><option>الكوليسترول</option>
+      <option>الربو</option><option>الغدة الدرقية</option><option>عدوى / مضاد حيوي</option><option>أخرى</option>
+    </select>
+    <label>اسم الدواء</label>
+    <input id="mName" placeholder="مثال: Amlodipine 5 mg">
+    <label>الجرعة</label>
+    <input id="mDose" placeholder="مثال: قرص واحد">
+    <label>وقت التناول</label>
+    <input id="mTime" type="time" value="08:00">
+    <label>علاقة الدواء بالطعام</label>
+    <select id="mFood">
+      <option value="بعد الأكل">بعد الأكل</option>
+      <option value="قبل الأكل">قبل الأكل</option>
+      <option value="مع الأكل">مع الأكل</option>
+      <option value="في أي وقت">في أي وقت</option>
+    </select>
+    <label>مدة الاستخدام بالأيام</label>
+    <input id="mDays" type="number" value="30" min="1">
+    <label>ملاحظات للصيدلي أو المريض</label>
+    <textarea id="mNotes" rows="2" placeholder="مثال: لا تتوقف عن الدواء دون استشارة الطبيب"></textarea>
+    <button class="primary" onclick="addMedication()">حفظ وتفعيل التذكير</button>
+  </div>
+</section>
+
+<section id="pharmacy" class="hidden">
+  <div class="card">
+    <h2>لوحة الصيدلي — المرضى المسجلون</h2>
+    <div id="pharmacyPatients"></div>
+    <button class="ghost" onclick="addDemoPatient()">إضافة مريض تجريبي</button>
+  </div>
+</section>
+
+<section id="reports" class="hidden">
+  <div class="card">
+    <h2>تقرير الالتزام الأسبوعي</h2>
+    <div class="stat">
+      <div><b id="rTotal">0</b>إجمالي الجرعات</div>
+      <div><b id="rTaken">0</b>تم تناولها</div>
+      <div><b id="rMissed">0</b>فائتة</div>
+      <div><b id="rRate">0%</b>نسبة الالتزام</div>
+    </div>
+    <h2 style="margin-top:18px">أكثر الأدوية حاجة للمتابعة</h2>
+    <div id="reportList"></div>
+    <p class="small">يمكن إرسال هذا التقرير للطبيب أو الصيدلي بعد موافقة المريض.</p>
+  </div>
+</section>
+</main>
+
+<div id="toast" class="toast"></div>
+<footer>نموذج واجهة لتطبيق تذكير الأدوية — لأغراض العرض الأكاديمي فقط.</footer>
+
+<script>
+let meds=[
+ {patient:"أحمد محمد",age:58,condition:"ضغط الدم",name:"Amlodipine 5 mg",dose:"قرص واحد",time:"08:00",food:"بعد الأكل",days:30,status:"pending",note:"لا تتوقف عن الدواء دون استشارة الطبيب"},
+ {patient:"أحمد محمد",age:58,condition:"السكري",name:"Metformin 850 mg",dose:"قرص واحد",time:"14:00",food:"مع الأكل",days:30,status:"pending",note:"يؤخذ مع الطعام"},
+ {patient:"أحمد محمد",age:58,condition:"الكوليسترول",name:"Atorvastatin 20 mg",dose:"قرص واحد",time:"21:00",food:"بعد الأكل",days:30,status:"pending",note:"يفضل مساءً"}
+];
+
+function show(page){
+ document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+ ['dashboard','add','pharmacy','reports'].forEach(p=>document.getElementById(p).classList.toggle('hidden',p!==page));
+ render();
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>show(b.dataset.page));
+
+function toast(msg){let t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
+
+function render(){
+ let list=document.getElementById('todayDoses');list.innerHTML='';
+ meds.forEach((m,i)=>{
+  let cls=m.status==='taken'?'taken':m.status==='missed'?'missed':'';
+  let actions=m.status==='pending'
+   ?`<div class="actions"><button class="ok" onclick="mark(${i},'taken')">تم</button><button class="late" onclick="mark(${i},'missed')">فوّت</button></div>`
+   :`<span class="pill">${m.status==='taken'?'تم التناول':'فائتة'}</span>`;
+  list.innerHTML+=`<div class="dose ${cls}"><div><b>${m.name}</b><div class="small">${m.dose} • ${m.food}</div><div class="small">${m.note||''}</div></div><div style="text-align:center"><div class="time">${m.time}</div>${actions}</div></div>`;
+ });
+ document.getElementById('medList').innerHTML=meds.map(m=>`<div class="med"><div><b>${m.name}</b><span class="small">${m.dose} • ${m.time} • ${m.food}</span></div><span class="pill">${m.condition}</span></div>`).join('');
+ let taken=meds.filter(m=>m.status==='taken').length,missed=meds.filter(m=>m.status==='missed').length,pending=meds.filter(m=>m.status==='pending').length;
+ let done=taken+missed,rate=done?Math.round(taken/done*100):0;
+ document.getElementById('takenCount').textContent=taken;
+ document.getElementById('pendingCount').textContent=pending;
+ document.getElementById('missedCount').textContent=missed;
+ document.getElementById('adherenceRate').textContent=rate+'%';
+ document.getElementById('refillBox').innerHTML=meds.map(m=>`<div class="med"><div><b>${m.name}</b><span class="small">متبقٍ تقريباً 12 يومًا</span></div><button class="ghost" onclick="toast('تم إرسال طلب إعادة صرف تجريبي')">اطلب</button></div>`).join('');
+ document.getElementById('rTotal').textContent=meds.length;
+ document.getElementById('rTaken').textContent=taken;
+ document.getElementById('rMissed').textContent=missed;
+ document.getElementById('rRate').textContent=rate+'%';
+ document.getElementById('reportList').innerHTML=meds.map(m=>`<div class="med"><div><b>${m.name}</b><span class="small">${m.condition}</span></div><span class="pill">${m.status==='taken'?'ملتزم':'يحتاج متابعة'}</span></div>`).join('');
+ renderPharmacy();
+}
+
+function mark(i,status){meds[i].status=status;render();toast(status==='taken'?'تم تسجيل أخذ الجرعة ✅':'تم تسجيل الجرعة كفائتة')}
+
+function addMedication(){
+ let name=document.getElementById('mName').value.trim();
+ if(!name){toast('الرجاء إدخال اسم الدواء');return}
+ meds.push({patient:document.getElementById('pName').value||'مريض جديد',age:document.getElementById('pAge').value||'',condition:document.getElementById('pCondition').value,name:name,dose:document.getElementById('mDose').value||'جرعة',time:document.getElementById('mTime').value,food:document.getElementById('mFood').value,days:document.getElementById('mDays').value,status:'pending',note:document.getElementById('mNotes').value});
+ show('dashboard');toast('تمت إضافة الدواء وتفعيل التذكير ✅');
+}
+
+function renderPharmacy(){
+ document.getElementById('pharmacyPatients').innerHTML=meds.map(m=>`<div class="med"><div><b>${m.patient}</b><span class="small">${m.age||'—'} سنة • ${m.condition}</span></div><span class="pill">${m.name}</span></div>`).join('');
+}
+
+function addDemoPatient(){
+ meds.push({patient:"ليان خالد",age:34,condition:"الربو",name:"Salbutamol inhaler",dose:"نفستان عند الحاجة",time:"09:00",food:"في أي وقت",days:14,status:"pending",note:"استخدمي عند ضيق التنفس حسب تعليمات الطبيب"});
+ render();toast('تمت إضافة مريض تجريبي');
+}
+
+render();
+</script>
+</body>
+</html>
